@@ -1,5 +1,111 @@
 # Small Electronic Device Bridge (SEDB) - Requirements Document
 
+**Version**: 1.1
+**Last Updated**: 2025-10-04
+**Status**: Draft
+
+---
+
+## Executive Summary
+
+The Small Electronic Device Bridge (SEDB) is a lightweight, self-contained IoT data collection system designed for privacy-conscious users and hobbyists. The system consists of two components:
+
+1. **ESP32 Firmware**: Runs on Adafruit ESP32 Feather V2 devices with attached sensors (initially AHT20 temperature/humidity)
+2. **Bridge Service**: Cross-platform polling service that collects data from ESP32 devices and stores it in a local database
+
+**Key Features**:
+- **Simple & Self-Contained**: No cloud services, no third-party platforms, no subscriptions
+- **Privacy-Focused**: All data remains on local network, air-gapped operation supported
+- **Low Resource**: Runs in <50MB RAM, supports battery-powered ESP32 devices
+- **Flexible Storage**: PostgreSQL, MariaDB, or SQLite backends
+- **Reliable**: Local buffering ensures no data loss during outages
+- **Cross-Platform**: Runs on Windows, macOS, Linux (AMD64/ARM)
+
+**Use Cases**:
+- Home environment monitoring (temperature, humidity)
+- Small-scale industrial sensor deployments
+- Hobby electronics and maker projects
+- Privacy-sensitive monitoring applications
+- Educational IoT projects
+
+**Timeline**: 5-6 weeks from requirements to v1.0 release
+
+---
+
+## Table of Contents
+
+1. [Functional Requirements](#1-functional-requirements)
+   - 1.1 [Core Functionality](#11-core-functionality)
+   - 1.2 [Configuration](#12-configuration)
+   - 1.3 [Logging](#13-logging)
+   - 1.4 [Extensibility](#14-extensibility)
+
+2. [Non-Functional Requirements](#2-non-functional-requirements)
+   - 2.1 [Performance](#21-performance)
+   - 2.2 [Platform Support](#22-platform-support)
+   - 2.3 [Service Integration](#23-service-integration)
+   - 2.4 [Reliability](#24-reliability)
+   - 2.5 [User Interface](#25-user-interface)
+   - 2.6 [Simplicity and Independence](#26-simplicity-and-independence)
+   - 2.7 [Power Efficiency](#27-power-efficiency)
+
+3. [Hardware Specifications](#3-hardware-specifications)
+   - 3.1 [ESP32 Device](#31-esp32-device)
+   - 3.2 [Sensor(s)](#32-sensors)
+   - 3.3 [Bridge Host System](#33-bridge-host-system)
+
+4. [Software Architecture](#4-software-architecture)
+   - 4.1 [Components](#41-components)
+   - 4.2 [Communication Protocol](#42-communication-protocol)
+   - 4.3 [Technology Stack](#43-technology-stack-recommendations)
+
+5. [Data Model](#5-data-model)
+   - 5.1 [Configuration File Structure](#51-configuration-file-structure)
+   - 5.2 [Sensor Data Structure](#52-sensor-data-structure)
+
+6. [Error Handling](#6-error-handling)
+   - 6.1 [ESP32 Connectivity Errors](#61-esp32-connectivity-errors)
+   - 6.2 [Database Connectivity Errors](#62-database-connectivity-errors)
+   - 6.3 [Local Buffer Full](#63-local-buffer-full)
+   - 6.4 [Invalid Sensor Data](#64-invalid-sensor-data)
+
+7. [Security Considerations](#7-security-considerations)
+   - 7.1 [Network Security](#71-network-security)
+   - 7.2 [Credential Management](#72-credential-management)
+   - 7.3 [Data Integrity](#73-data-integrity)
+   - 7.4 [Privacy and Data Sovereignty](#74-privacy-and-data-sovereignty)
+
+8. [Testing Requirements](#8-testing-requirements)
+   - 8.1 [Unit Tests](#81-unit-tests)
+   - 8.2 [Integration Tests](#82-integration-tests)
+   - 8.3 [System Tests](#83-system-tests)
+   - 8.4 [Platform Tests](#84-platform-tests)
+
+9. [Deployment](#9-deployment)
+   - 9.1 [Packaging](#91-packaging)
+   - 9.2 [Installation Steps](#92-installation-steps)
+   - 9.3 [Upgrade Path](#93-upgrade-path)
+
+10. [Future Enhancements](#10-future-enhancements-out-of-scope-for-v10)
+
+11. [Success Criteria](#11-success-criteria)
+    - 11.1 [Minimum Viable Product (MVP)](#111-minimum-viable-product-mvp)
+    - 11.2 [Version 1.0](#112-version-10)
+
+12. [Timeline](#12-timeline-estimated)
+
+13. [Discussion: Design Decision Considerations](#13-discussion-design-decision-considerations)
+    - 13.1 [Communication Protocol: HTTP REST vs MQTT](#131-communication-protocol-http-rest-vs-mqtt)
+    - 13.2 [Configuration Format: YAML vs JSON vs TOML](#132-configuration-format-yaml-vs-json-vs-toml)
+    - 13.3 [Sensor Discovery: Configuration vs Auto-Discovery](#133-sensor-discovery-configuration-vs-auto-discovery)
+    - 13.4 [Device Scalability: Maximum Concurrent Devices](#134-device-scalability-maximum-concurrent-devices)
+    - 13.5 [Data Retention Policy](#135-data-retention-policy)
+    - 13.6 [Summary of Recommendations](#136-summary-of-recommendations)
+
+14. [Open Questions](#14-open-questions)
+
+---
+
 ## Project Overview
 
 A cross-platform polling bridge service that periodically connects to ESP32 devices on the local network, retrieves sensor data, and persists it to a configured database with local buffering and comprehensive logging.
